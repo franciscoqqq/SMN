@@ -20,7 +20,6 @@ from datetime import datetime
 #filepath = "____________________________________________________"
 filepath = "C://Aethalometer/AE33/Datos/Crudos/2025/MBI_AE33_log_2025.xlsx"
 #Estructura de carga de datos fijas, solo hay que cambiarle el año
-################################################################
 
 #############################################
 ##############  FUNCIONES   #################
@@ -61,10 +60,8 @@ def destroy_all_windows():
 ############# GUARDADO DE DATOS #############
 #############################################
 
-
 def guardar_datos():
     global observaciones
-    #observaciones = observ_entry.get("1.0", "end-1c") if 'observ_entry' in globals() else ""
     
     form_data = {
         "Hora": datetime.today().strftime('%Y-%m-%d %H:%M'),
@@ -86,40 +83,7 @@ def guardar_datos():
         "Prueba_estabilidad": radioValue_Estabilidad.get(),
         "Observaciones": observaciones
     }
-    
-    #global OPERADOR, STATUS, VALVE_STATUS_CERO, VALVE_STATUS_OPTIONS, APARIENCIA_FILTRO
-    #global FLUJO_5, FLUJO_otrovalor, CINTA_REEMPLAZADA, CHECKBOX_GRAL
-    #global FTP_CHECK, VERIF_FLUJO_NONECESARIO, VERIF_FLUJO_OK, VERIF_FUGAS, LIMPIEZA_OPTICA
-    #global PRUEBA_AIRELIMPIO, PRUEBA_ESTABILIDAD, OBSERVACIONES,observaciones
-    
-    #OPERADOR = operador_entry.get()
-    #STATUS = status_entry.get()
-    #VALVE_STATUS_CERO = cerocheck_var.get()
-    #VALVE_STATUS_OPTIONS = cero_options_var.get()
-    #APARIENCIA_FILTRO = apariencia_options_var.get()
-    #FLUJO_5 = flowcheck_var.get()
-    #FLUJO_otrovalor = flow_entry.get()
-    #CINTA_REEMPLAZADA = reemplazocinta_var.get()
-    #CHECKBOX_GRAL = general_checkbox_var.get()
-    #FTP_CHECK = ftp_check_var.get()
-    
-    #VERIF_FLUJO_NONECESARIO = verifflujononece_checkbox_var.get()
-    #VERIF_FLUJO_OK = verifflujoacept_checkbox_var.get()
-    #VERIF_FUGAS = radioValue_veriffugas_var.get()
-    
-    #LIMPIEZA_OPTICA = limpiezaoptica_checkbox_var.get()
-    #PRUEBA_AIRELIMPIO = radioValue_Airelimpio.get()
-    #PRUEBA_ESTABILIDAD = radioValue_Estabilidad.get()
-    
-    #OBSERVACIONES = observaciones
-   
-    #print(datetime.today().strftime('%Y-%m-%d %H:%M'))
-    #print(OPERADOR,STATUS,VALVE_STATUS_CERO,VALVE_STATUS_OPTIONS,APARIENCIA_FILTRO)
-    #print(FLUJO_5,FLUJO_otrovalor,CINTA_REEMPLAZADA,CHECKBOX_GRAL)
-    #print(FTP_CHECK,VERIF_FLUJO_NONECESARIO,VERIF_FLUJO_OK,VERIF_FUGAS)
-    #print(LIMPIEZA_OPTICA,PRUEBA_AIRELIMPIO,PRUEBA_ESTABILIDAD)
-    #print(OBSERVACIONES)
-    
+        
     if not form_data["Operador"]:
         messagebox.showwarning("Advertencia", "El campo Operador es obligatorio.")
         return
@@ -139,31 +103,10 @@ def guardar_datos():
         open_guardado_window()
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo guardar el archivo: {str(e)}")
-        
-    #if not os.path.exists(filepath):
-    #    workbook = openpyxl.Workbook()
-    #    sheet = workbook.active
-    #    heading = ["Hora", "Operador", "Status", "Valve Status Zero", "Valve Status options", "Apariencia filtro",
-    #               "Flujo 5lpm?", "Flujo otro valor", "Cinta reemplazada?","Checkbox gral",
-    #               "FTP check", "Verif. Flujo No Necesario", "Verif. Flujo Aceptable", "Verif. Fugas",
-    #               "Limpieza Optica", "Prueba Aire Limpio", "Prueba estabilidad",
-    #               "Observaciones"]
-    #    sheet.append(heading)
-    #    workbook.save(filepath)
-    #    
-    #workbook = openpyxl.load_workbook(filepath)
-    #sheet = workbook.active
-    #sheet.append([datetime.today().strftime('%Y-%m-%d %H:%M'),OPERADOR,STATUS,VALVE_STATUS_CERO,VALVE_STATUS_OPTIONS,APARIENCIA_FILTRO,
-    #              FLUJO_5,FLUJO_otrovalor,CINTA_REEMPLAZADA,CHECKBOX_GRAL,
-    #              FTP_CHECK,VERIF_FLUJO_NONECESARIO,VERIF_FLUJO_OK,VERIF_FUGAS,
-    #              LIMPIEZA_OPTICA,PRUEBA_AIRELIMPIO,PRUEBA_ESTABILIDAD,
-    #              OBSERVACIONES])
-    #workbook.save(filepath)
-    
+
 #############################################
 ############## VENTANAS EXTRA ###############
 #############################################
-
 
 ######### VENTANA: OBSERVACIONES ############
 def open_observ_window():
@@ -236,7 +179,6 @@ def open_window_mensual_verificarflujo():
     quit_button = tk.Button(calibracionflujo_frame, text="Salir", command=lambda: close_new_window(new_window))
     quit_button.grid(row=1,columnspan=2)
 
-    #new_window.mainloop()
 #Cerrar ventana: Control mensual, flujo
 def close_new_window(new_window):
     new_window.destroy()
@@ -259,15 +201,16 @@ def open_guardado_window():
 root = tk.Tk()
 root.title("Aethalometro") 
 
+# Cambia el icono de la ventana
+root.iconbitmap(r"C:\Aethalometer/AE33/Scripts/icono.ico")
+################################################################
+
 # Obtiene el tamaño de la pantalla
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 
 center_window(root, 800, 840)
 root.minsize(800, 840)
-
-# Cambia el icono de la ventana
-root.iconbitmap(r"C:\Users\fquarin\Desktop\icono.ico")
 
 # Set a default font for all widgets
 default_font = font.nametofont("TkDefaultFont")
@@ -322,7 +265,7 @@ cerocheck_var = tk.BooleanVar()
 cero_checkbox = ttk.Checkbutton(info_frame_1, text="00000 : Medición", variable=cerocheck_var, command=disable_widgets,style="Custom.TCheckbutton")
 cero_checkbox.grid(row=3, column=1,sticky="ew")
 
-     # Desplegable
+# Desplegable
 cero_options_var = tk.StringVar()
 cero_options = ["01011 : Derivación", "01100 : Calentamiento/Aire limpio", "00010 : Calibración medidor de flujo"]
 dropdown = ttk.Combobox(info_frame_1, textvariable=cero_options_var, values=cero_options, state="readonly",background="white")
