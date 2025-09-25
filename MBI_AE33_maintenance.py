@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on May 2023
+Modifiqué la ruta para dejarla fija en base a nuestro nuevo criterio GM enero 2025
 
 @author: fquarin
 """
@@ -14,8 +14,8 @@ from datetime import datetime
 ################################################################
 #INGRESAR DIRECCION Y NOMBRE DE LA PLANILLA A CREAR/MODIFICAR
 #filepath = "____________________________________________________"
-filepath = "C:/Users/fquarin/Documents/codigos_python/data.xlsx"
-#POR EJEMPLO: "C:/Users/fquarin/Documents/codigos_python/data.xlsx"
+filepath = "C://Aethalometer/AE33/Datos/Crudos/2025/MBI_AE33_log_2025.xlsx"
+#Estructura de carga de datos fijas, solo hay que cambiarle el año
 ################################################################
 
 
@@ -62,17 +62,15 @@ def destroy_all_windows():
 
 def guardar_datos():
     
-    global OPERADOR, STATUS, CERO_CHECK, CERO_OPTIONS, APARIENCIA_FILTRO
+    global OPERADOR, STATUS, VALVE_STATUS_CERO, VALVE_STATUS_OPTIONS, APARIENCIA_FILTRO
     global FLUJO_5, FLUJO_otrovalor, CINTA_REEMPLAZADA, CHECKBOX_GRAL
-    global FTP_CHECK, VERIF_FLUJO, VERIF_FLUJO_OK, VERIF_FUGAS, LIMPIEZA_OPTICA
+    global FTP_CHECK, VERIF_FLUJO_NONECESARIO, VERIF_FLUJO_OK, VERIF_FUGAS, LIMPIEZA_OPTICA
     global PRUEBA_AIRELIMPIO, PRUEBA_ESTABILIDAD, OBSERVACIONES,observaciones
-    
-    
     
     OPERADOR = operador_entry.get()
     STATUS = status_entry.get()
-    CERO_CHECK = cerocheck_var.get()
-    CERO_OPTIONS = cero_options_var.get()
+    VALVE_STATUS_CERO = cerocheck_var.get()
+    VALVE_STATUS_OPTIONS = cero_options_var.get()
     APARIENCIA_FILTRO = apariencia_options_var.get()
     FLUJO_5 = flowcheck_var.get()
     FLUJO_otrovalor = flow_entry.get()
@@ -80,7 +78,7 @@ def guardar_datos():
     CHECKBOX_GRAL = general_checkbox_var.get()
     FTP_CHECK = ftp_check_var.get()
     
-    VERIF_FLUJO = verifflujononece_checkbox_var.get()
+    VERIF_FLUJO_NONECESARIO = verifflujononece_checkbox_var.get()
     VERIF_FLUJO_OK = verifflujoacept_checkbox_var.get()
     VERIF_FUGAS = radioValue_veriffugas_var.get()
     
@@ -91,18 +89,18 @@ def guardar_datos():
     OBSERVACIONES = observaciones
    
     print(datetime.today().strftime('%Y-%m-%d %H:%M'))
-    print(OPERADOR,STATUS,CERO_CHECK,CERO_OPTIONS,APARIENCIA_FILTRO)
+    print(OPERADOR,STATUS,VALVE_STATUS_CERO,VALVE_STATUS_OPTIONS,APARIENCIA_FILTRO)
     print(FLUJO_5,FLUJO_otrovalor,CINTA_REEMPLAZADA,CHECKBOX_GRAL)
-    print(FTP_CHECK,VERIF_FLUJO,VERIF_FLUJO_OK,VERIF_FUGAS)
+    print(FTP_CHECK,VERIF_FLUJO_NONECESARIO,VERIF_FLUJO_OK,VERIF_FUGAS)
     print(LIMPIEZA_OPTICA,PRUEBA_AIRELIMPIO,PRUEBA_ESTABILIDAD)
     print(OBSERVACIONES)
     
     if not os.path.exists(filepath):
         workbook = openpyxl.Workbook()
         sheet = workbook.active
-        heading = ["Hora", "Operador", "Status", "Cero Check", "Cero options", "Apariencia filtro",
+        heading = ["Hora", "Operador", "Status", "Valve Status Zero", "Valve Status options", "Apariencia filtro",
                    "Flujo 5lpm?", "Flujo otro valor", "Cinta reemplazada?","Checkbox gral",
-                   "FTP check", "Verif Flujo", "Verif Flujo OK", "Verif Fugas",
+                   "FTP check", "Verif. Flujo No Necesario", "Verif. Flujo Aceptable", "Verif. Fugas",
                    "Limpieza Optica", "Prueba Aire Limpio", "Prueba estabilidad",
                    "Observaciones"]
         sheet.append(heading)
@@ -110,9 +108,9 @@ def guardar_datos():
         
     workbook = openpyxl.load_workbook(filepath)
     sheet = workbook.active
-    sheet.append([datetime.today().strftime('%Y-%m-%d %H:%M'),OPERADOR,STATUS,CERO_CHECK,CERO_OPTIONS,APARIENCIA_FILTRO,
+    sheet.append([datetime.today().strftime('%Y-%m-%d %H:%M'),OPERADOR,STATUS,VALVE_STATUS_CERO,VALVE_STATUS_OPTIONS,APARIENCIA_FILTRO,
                   FLUJO_5,FLUJO_otrovalor,CINTA_REEMPLAZADA,CHECKBOX_GRAL,
-                  FTP_CHECK,VERIF_FLUJO,VERIF_FLUJO_OK,VERIF_FUGAS,
+                  FTP_CHECK,VERIF_FLUJO_NONECESARIO,VERIF_FLUJO_OK,VERIF_FUGAS,
                   LIMPIEZA_OPTICA,PRUEBA_AIRELIMPIO,PRUEBA_ESTABILIDAD,
                   OBSERVACIONES])
     workbook.save(filepath)
@@ -224,7 +222,7 @@ status_entry.grid(row=2, column=1)
 valve_status_label = tk.Label(info_frame_1, text="Valve Status")
 valve_status_label.grid(row = 3, column = 0)
 
-cerocheck_var = tk.IntVar()
+cerocheck_var = tk.BooleanVar()
 cero_checkbox = tk.Checkbutton(info_frame_1, text="00000 : Medición", variable=cerocheck_var, command=disable_widgets)
 cero_checkbox.grid(row=3, column=1)
 
@@ -239,7 +237,7 @@ apariencia_filtro_label = tk.Label(info_frame_1, text="Apariencia Filtro")
 apariencia_filtro_label.grid(row=4, column=0, columnspan=1)
 
 apariencia_options_var = tk.StringVar()
-apariencia_options = ["Normal","Achucharrado","Marron"]
+apariencia_options = ["Normal","Con humedad","Marron"]
 desplegable_apariencia = tk.OptionMenu(info_frame_1, apariencia_options_var, *apariencia_options)
 desplegable_apariencia.grid(row=4, column=1)
 
@@ -247,7 +245,7 @@ desplegable_apariencia.grid(row=4, column=1)
 flow_label = tk.Label(info_frame_1, text="Flujo")
 flow_label.grid(row=5, column=0)
 
-flowcheck_var = tk.IntVar()
+flowcheck_var = tk.BooleanVar()
 flow_check = tk.Checkbutton(info_frame_1, text="5 lpm",variable=flowcheck_var, command=disable_widgets)
 flow_check.grid(row=5, column=1)
 
@@ -258,7 +256,7 @@ lpm_text_label = tk.Label(info_frame_1, text = "lpm")
 lpm_text_label.grid(row=5,column=3)
 
 # Reemplazo Cinta
-reemplazocinta_var = tk.IntVar()
+reemplazocinta_var = tk.BooleanVar()
 reemplazocinta_checkbox = tk.Checkbutton(info_frame_1, text="Se reemplazó la cinta", variable=reemplazocinta_var, command=disable_widgets)
 reemplazocinta_checkbox.grid(row=6, column=1)
 
