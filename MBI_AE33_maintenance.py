@@ -29,13 +29,26 @@ filepath = "C://Aethalometer/AE33/Datos/Crudos/2025/MBI_AE33_log_2025.xlsx"
 def validate_numeric_input(input):
     return input.isnumeric()
 
+# Para admitir números con parte decimal (punto o coma) y vacío
+def validate_decimal_input(input_value):
+    if input_value == "":
+        return True
+    allowed_chars = set("0123456789.,")
+    if not set(input_value).issubset(allowed_chars):
+        return False
+    if input_value.count('.') + input_value.count(',') > 1:
+        return False
+    return True
+
 #Deshabilitar widgets
 def disable_widgets():
 ####Si Valve Status "0 (cero)" esta checkeado --> Disable dropdown de valve status
     if cerocheck_var.get() == 1:
         dropdown.config(state='disabled')
+        on_valve_status_change()
     else:
         dropdown.config(state='normal')  
+        on_valve_status_change()
 ####Si 5lpm esta checkeado --> Disable flujo blankbox
     if flowcheck_var.get() == 1:
         flow_entry.config(state='disabled')
@@ -55,6 +68,26 @@ def destroy_all_windows():
     for widget in root.winfo_children():
         widget.destroy()
     root.destroy()
+
+def copy_to_clipboard(text):
+    try:
+        root.clipboard_clear()
+        root.clipboard_append(text)
+        root.update()
+    except Exception:
+        pass
+
+# Texto de ayuda para Valve Status
+VALVE_STATUS_HELP = {
+    "01011 : Derivación": "Derivación: el flujo se desvía del camino principal (bypass).",
+    "01100 : Calentamiento/Aire limpio": "Calentamiento o aire limpio: preparación/limpieza del sistema.",
+    "00010 : Calibración medidor de flujo": "Calibración del medidor de flujo: realizar/verificar ajuste."
+}
+
+def on_valve_status_change(event=None):
+    sel = cero_options_var.get()
+    hint = VALVE_STATUS_HELP.get(sel, "")
+    valve_hint_label.config(text=hint)
 
 #############################################
 ############# GUARDADO DE DATOS #############
@@ -113,28 +146,36 @@ def open_observ_window():
     global observ_window, observ_entry
     observ_window = tk.Toplevel(root)
     observ_window.title("Observaciones")
-    observ_window.configure(bg="#32506b")
-    center_window(observ_window, 700, 300)
+    observ_window.configure(bg="#e7f2f9")
+    center_window(observ_window, 560, 320)
 
-    lf = tk.LabelFrame(observ_window, text="Ingrese cualquier tipo de información relevante:", bg="#e6eef5", font=("Segoe UI", 12, "bold"))
-    lf.pack(fill="both", expand=True, padx=15, pady=15,anchor="nw")
+    # Marco contenedor con estilos de la sección Save
+    wrapper = ttk.Frame(observ_window, style='Save.TLabelframe', padding=14)
+    wrapper.grid(row=0, column=0, sticky='nsew')
+    observ_window.columnconfigure(0, weight=1)
+    observ_window.rowconfigure(0, weight=1)
 
-    observ_entry = tk.Text(lf, width=40, height=8, font=("Segoe UI", 12))
-    observ_entry.pack(padx=10, pady=10, fill="both", expand=True)
+    title = ttk.Label(wrapper, text="Ingrese cualquier tipo de información relevante:", style='Save.TLabel')
+    title.grid(row=0, column=0, sticky='w')
 
-    observ_button1 = ttk.Button(observ_window, text="Guardar y salir", command=save_observ)
-    observ_button1.pack(pady=(0, 15))
+    # Text no tiene variante ttk: ajusto colores para integrarlo visualmente
+    observ_entry = tk.Text(wrapper, width=60, height=10, font=("Calibri", 12),
+                           bg='#e7f2f9', fg='#005ca6', relief='solid', bd=1)
+    observ_entry.grid(row=1, column=0, sticky='nsew', pady=(8, 12))
+    wrapper.columnconfigure(0, weight=1)
+    wrapper.rowconfigure(1, weight=1)
+
+    buttons = ttk.Frame(wrapper, style='Save.TLabelframe')
+    buttons.grid(row=2, column=0, sticky='ew')
+    buttons.columnconfigure(0, weight=1)
+    buttons.columnconfigure(1, weight=1)
+
+    observ_button1 = ttk.Button(buttons, text="Guardar y salir", command=save_observ, style='Save.TButton')
+    observ_button1.grid(row=0, column=0, sticky='ew', padx=(0, 6))
+    observ_button2 = ttk.Button(buttons, text="Cerrar", command=observ_window.destroy, style='Save.TButton')
+    observ_button2.grid(row=0, column=1, sticky='ew', padx=(6, 0))
 
     observ_window.grab_set()  # Hace modal la ventana
-   # Centrar la ventana
-    observ_window.update_idletasks()
-    w = 700
-    h = 300
-    ws = observ_window.winfo_screenwidth()
-    hs = observ_window.winfo_screenheight()
-    x = (ws // 2) - (w // 2)
-    y = (hs // 2) - (h // 2)
-    observ_window.geometry(f"{w}x{h}+{x}+{y}")
 
 #Para centrar cualquier ventana
 def center_window(window, width, height):
@@ -158,26 +199,47 @@ def close_observ_window(observ_window):
 #############################################
 ##### VENTANA: CONTROL MENSUAL. FLUJO   #####
 def open_window_mensual_verificarflujo():
-    
     new_window = tk.Toplevel(root)
     new_window.title("Control Mensual")
-    new_window.geometry("320x100")
-    center_window(new_window, 320, 100)
-    new_window.grab_set()  # Hace modal la ventana
-    frame_new_window = tk.Frame(new_window)
-    frame_new_window.pack()
-    
-    calibracionflujo_frame = tk.LabelFrame(frame_new_window, text = "Calibracion de Flujo")
-    calibracionflujo_frame.grid(row=0,column=0)
-   
+    new_window.configure(bg='#e7f9f2')
+    center_window(new_window, 440, 150)
+    new_window.resizable(True, True)
+    new_window.minsize(380, 180)
+    new_window.grab_set()
+
+    wrapper = ttk.Frame(new_window, style='SysCounts.TFrame', padding=12)
+    wrapper.grid(row=0, column=0, sticky='nsew', padx=6, pady=6)
+    new_window.columnconfigure(0, weight=1)
+    new_window.rowconfigure(0, weight=1)
+
+    # Título sin recuadro visible
+    calib_title = ttk.Label(wrapper, text="Calibración de Flujo", style='SysCounts.Title.TLabel')
+    calib_title.grid(row=0, column=0, sticky='w', padx=8, pady=(6, 2))
+
+    # Contenedor plano (sin bordes) en lugar de LabelFrame
+    calibracionflujo_frame = ttk.Frame(wrapper, style='SysCounts.TFrame')
+    calibracionflujo_frame.grid(row=1, column=0, sticky='nsew', padx=8, pady=4)
+    wrapper.columnconfigure(0, weight=1)
+    wrapper.rowconfigure(1, weight=1)
+    calibracionflujo_frame.columnconfigure(0, weight=1)
+    calibracionflujo_frame.columnconfigure(1, weight=1)
+    calibracionflujo_frame.rowconfigure(0, weight=1)
+
     calibflujomensual_var = tk.IntVar()
-    R1_calibflujomensual = tk.Radiobutton(calibracionflujo_frame,text="Aceptable",variable=calibflujomensual_var,value=1)
-    R1_calibflujomensual.grid(row=0, column=0)
-    R2_calibflujomensual = tk.Radiobutton(calibracionflujo_frame,text="No aceptable",variable=calibflujomensual_var,value=2,command=lambda: [close_new_window(new_window),open_contacto_window()])
-    R2_calibflujomensual.grid(row=0, column=1)
- 
-    quit_button = tk.Button(calibracionflujo_frame, text="Salir", command=lambda: close_new_window(new_window))
-    quit_button.grid(row=1,columnspan=2)
+    options_row = ttk.Frame(calibracionflujo_frame, style='SysCounts.TFrame')
+    options_row.grid(row=0, column=0, columnspan=2, sticky='nsew', pady=(6, 6))
+    calibracionflujo_frame.rowconfigure(0, weight=1)
+    options_row.columnconfigure(0, weight=1)
+    options_row.columnconfigure(1, weight=1)
+
+    R1_calibflujomensual = ttk.Radiobutton(options_row, text="Aceptable", variable=calibflujomensual_var, value=1, style='SysCounts.TRadiobutton')
+    R1_calibflujomensual.grid(row=0, column=0, padx=12, pady=4, sticky='e')
+
+    R2_calibflujomensual = ttk.Radiobutton(options_row, text="No aceptable", variable=calibflujomensual_var, value=2, command=lambda: [close_new_window(new_window), open_contacto_window()], style='SysCounts.TRadiobutton')
+    R2_calibflujomensual.grid(row=0, column=1, padx=12, pady=4, sticky='w')
+
+    quit_button = ttk.Button(calibracionflujo_frame, text="Cerrar", command=lambda: close_new_window(new_window), style='SysCounts.TButton')
+    quit_button.grid(row=1, column=0, columnspan=2, pady=(4, 2), padx=8, sticky='ew')
 
 #Cerrar ventana: Control mensual, flujo
 def close_new_window(new_window):
@@ -186,8 +248,52 @@ def close_new_window(new_window):
 #############################################
 ############ VENTANA CONTACTO ###############
 def open_contacto_window():  
-    return messagebox.showwarning('CONTACTO!', 'Por favor, contactarse con:\n\nGiselle Marincovich: gmarincovich@smn.gob.ar \n\nFrancisco Quarin: fquarin@smn.gob.ar\n\nMuchas Gracias') 
-    messagebox.showinfo("CONTACTO")
+    contacto = tk.Toplevel(root)
+    contacto.title('Contacto')
+    contacto.configure(bg='#e7f2f9')
+    center_window(contacto, 280, 260)
+    contacto.minsize(280, 220)
+    contacto.grab_set()
+
+    wrapper = ttk.Frame(contacto, style='Save.TFrame', padding=16)
+    wrapper.grid(row=0, column=0, sticky='nsew')
+    contacto.columnconfigure(0, weight=1)
+    contacto.rowconfigure(0, weight=1)
+    # Hacer que todas las filas internas puedan expandir
+    for i in range(0, 5):
+        wrapper.rowconfigure(i, weight=1)
+    wrapper.columnconfigure(0, weight=1)
+
+    title = ttk.Label(wrapper, text='Contacto', style='Save.Title.TLabel')
+    title.grid(row=0, column=0, sticky='ew', pady=(0,8))
+
+    lbl = ttk.Label(wrapper, text='Por favor, contactarse con:', style='Save.TLabel')
+    lbl.grid(row=1, column=0, sticky='ew')
+
+    mail_row_1 = ttk.Frame(wrapper, style='Save.TFrame')
+    mail_row_1.grid(row=2, column=0, sticky='nsew', pady=(6,2))
+    mail_row_1.columnconfigure(0, weight=1)
+    mail_label_1 = ttk.Label(mail_row_1, text='Giselle Marincovich:', style='Save.TLabel')
+    mail_label_1.grid(row=0, column=0, sticky='ew')
+    mail_value_1 = ttk.Label(mail_row_1, text='gmarincovich@smn.gob.ar', style='Save.Email.TLabel')
+    mail_value_1.grid(row=1, column=0, sticky='ew')
+
+    mail_row_2 = ttk.Frame(wrapper, style='Save.TFrame')
+    mail_row_2.grid(row=3, column=0, sticky='nsew', pady=(2,6))
+    mail_row_2.columnconfigure(0, weight=1)
+    mail_label_2 = ttk.Label(mail_row_2, text='Francisco Quarin:', style='Save.TLabel')
+    mail_label_2.grid(row=0, column=0, sticky='ew')
+    mail_value_2 = ttk.Label(mail_row_2, text='fquarin@smn.gob.ar', style='Save.Email.TLabel')
+    mail_value_2.grid(row=1, column=0, sticky='ew')
+
+    btns = ttk.Frame(wrapper, style='Save.TFrame')
+    btns.grid(row=4, column=0, sticky='nsew', pady=(12, 0))
+    btns.columnconfigure(0, weight=1)
+    btns.rowconfigure(0, weight=1)
+
+    cerrar_btn = ttk.Button(btns, text='Cerrar', command=contacto.destroy, style='Save.TButton')
+    cerrar_btn.grid(row=0, column=0, sticky='nsew')
+    return contacto
 
 #############################################
 ############ VENTANA GUARDADO EXITOSO ###############
@@ -200,34 +306,86 @@ def open_guardado_window():
 ###### Ventana Principal (root) ######
 root = tk.Tk()
 root.title("Aethalometro") 
-
+root.geometry("")
 # Cambia el icono de la ventana
 root.iconbitmap(r"C:\Aethalometer/AE33/Scripts/icono.ico")
 ################################################################
 
 # Obtiene el tamaño de la pantalla
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
+#screen_width = root.winfo_screenwidth()
+#screen_height = root.winfo_screenheight()
 
-center_window(root, 800, 840)
-root.minsize(800, 840)
+#center_window(root, 800, 840)
+#root.minsize(800, 840)
 
 # Set a default font for all widgets
-default_font = font.nametofont("TkDefaultFont")
-default_font.configure(size=12, family="Segoe UI")
+#default_font = font.nametofont("TkDefaultFont")
+#default_font.configure(size=12, family="Segoe UI")
 
-# Use ttk theme for modern look
+# Estilos coherentes con MBI_NEPHBS_maintenance.py
 style = ttk.Style()
-style.theme_use('vista')  # Try 'clam', 'alt', 'default', or 'vista' on Windows
+style.theme_use('clam')
 
-frame = tk.Frame(root, bg="#f0f4f7")
-frame.pack()
-#frame.pack(fill="both", expand=True, padx=20, pady=20,)
+# Colores y estilos por sección
+style.configure('Info.TLabelframe', background='#e6f2ff', foreground='#003366', font=('Calibri', 14, 'bold'))
+style.configure('Info.TLabelframe.Label', background='#e6f2ff', foreground='#003366', font=('Calibri', 14, 'bold'))
+style.configure('Info.TLabel', background='#e6f2ff', foreground='#003366', font=('Calibri', 12))
+
+style.configure('Checklist.TLabelframe', background='#f9f2e7', foreground='#a65c00', font=('Calibri', 14, 'bold'))
+style.configure('Checklist.TLabelframe.Label', background='#f9f2e7', foreground='#a65c00', font=('Calibri', 14, 'bold'))
+style.configure('Checklist.TLabel', background='#f9f2e7', foreground='#a65c00', font=('Calibri', 12))
+
+style.configure('SysCounts.TLabelframe', background='#e7f9f2', foreground='#008066', font=('Calibri', 14, 'bold'))
+style.configure('SysCounts.TLabelframe.Label', background='#e7f9f2', foreground='#008066', font=('Calibri', 14, 'bold'))
+style.configure('SysCounts.TLabel', background='#e7f9f2', foreground='#008066', font=('Calibri', 12))
+
+style.configure('SysStatus.TLabelframe', background='#f2e7f9', foreground='#660080', font=('Calibri', 14, 'bold'))
+style.configure('SysStatus.TLabelframe.Label', background='#f2e7f9', foreground='#660080', font=('Calibri', 14, 'bold'))
+style.configure('SysStatus.TLabel', background='#f2e7f9', foreground='#660080', font=('Calibri', 12))
+
+style.configure('Save.TLabelframe', background='#e7f2f9', foreground='#005ca6', font=('Calibri', 14, 'bold'))
+style.configure('Save.TLabelframe.Label', background='#e7f2f9', foreground='#005ca6', font=('Calibri', 14, 'bold'))
+style.configure('Save.TLabel', background='#e7f2f9', foreground='#005ca6', font=('Calibri', 12))
+
+style.configure('Save.TButton', font=('Calibri', 13, 'bold'), background='#e7f2f9', foreground='#005ca6', borderwidth=2, focusthickness=3, focuscolor='#005ca6')
+style.map('Save.TButton', background=[('active', '#cce6ff')], foreground=[('active', '#003366')])
+
+style.configure('Checklist.TCheckbutton', background='#f9f2e7', foreground='#a65c00', font=('Calibri', 12))
+style.configure('SysCounts.TCheckbutton', background='#e7f9f2', foreground='#008066', font=('Calibri', 12))
+style.configure('Info.TCheckbutton', background='#e6f2ff', foreground='#003366', font=('Calibri', 12))
+style.configure('SysStatus.TCheckbutton', background='#f2e7f9', foreground='#660080', font=('Calibri', 12))
+style.configure('SysStatus.TRadiobutton', background='#f2e7f9', foreground='#660080', font=('Calibri', 12))
+style.configure('SysCounts.TRadiobutton', background='#e7f9f2', foreground='#008066', font=('Calibri', 12))
+style.configure('SysCounts.TFrame', background='#e7f9f2')
+style.configure('SysCounts.Title.TLabel', background='#e7f9f2', foreground='#008066', font=('Calibri', 16, 'bold'))
+style.configure('Save.Title.TLabel', background='#e7f2f9', foreground='#005ca6', font=('Calibri', 16, 'bold'))
+style.configure('Save.Email.TLabel', background='#e7f2f9', foreground='#005ca6', font=('Consolas', 12))
+style.configure('Save.TFrame', background='#e7f2f9')
+
+# Combobox estilo para Info
+style.configure('Info.TCombobox', fieldbackground='#e6f2ff', background='#e6f2ff')
+style.map('Info.TCombobox', fieldbackground=[('readonly', '#e6f2ff')], background=[('readonly', '#e6f2ff')])
+
+# Separadores
+style.configure('Checklist.TSeparator', background='#a65c00')
+style.configure('SysStatus.TSeparator', background='#660080')
+style.configure('Info.TSeparator', background='#003366')
+style.configure('SysCounts.TSeparator', background='#008066')
+style.configure('Save.TSeparator', background='#005ca6')
+
+root.configure(bg='#e6f2ff')
+
+frame = ttk.Frame(root)
+frame.pack(fill="both", expand=True)
+frame.columnconfigure(0, weight=1)
 
 ##### INFO FRAME -1- #####
 
-info_frame_1 = tk.LabelFrame(frame, text="Información", bg="#e6eef5", font=("Segoe UI", 12, "bold"), padx=10, pady=10)
-info_frame_1.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+sep_info = ttk.Separator(frame, orient='horizontal', style='Info.TSeparator')
+sep_info.grid(row=0, column=0, sticky='EW')
+
+info_frame_1 = ttk.LabelFrame(frame, text="Información ➀", labelanchor='n', style='Info.TLabelframe')
+info_frame_1.grid(row=1, column=0, sticky="we")
 
 # Configura el peso de las columnas para centrar el contenido
 info_frame_1.grid_columnconfigure(0, weight=1)
@@ -236,14 +394,14 @@ info_frame_1.grid_columnconfigure(2, weight=30)
 info_frame_1.grid_columnconfigure(3, weight=30)
 
 #Operador
-operador_label = tk.Label(info_frame_1, text="Operador", bg="#e6eef5",anchor="w", justify="left")
+operador_label = ttk.Label(info_frame_1, text="Operador", style='Info.TLabel')
 operador_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-operador_entry = ttk.Entry(info_frame_1, font=("Segoe UI", 12))
+operador_entry = ttk.Entry(info_frame_1)
 operador_entry.grid(row=0, column=1, padx=5, pady=5,sticky="ew")
 
 # Status (numeric only)
-status_label = ttk.Label(info_frame_1, text="Status", background="#e6eef5")
+status_label = ttk.Label(info_frame_1, text="Status", style='Info.TLabel')
 status_label.grid(row=2, column=0,sticky="ew")
 
 status_entry = ttk.Entry(info_frame_1, validate="key")
@@ -251,57 +409,65 @@ status_entry['validatecommand'] = (status_entry.register(validate_numeric_input)
 status_entry.grid(row=2, column=1,sticky="ew")
 
 #Valve status. Si 0 esta tildado, deshabilito desplegable 
-valve_status_label = ttk.Label(info_frame_1, text="Valve Status",background="#e6eef5")
+valve_status_label = ttk.Label(info_frame_1, text="Valve Status", style='Info.TLabel')
 valve_status_label.grid(row=3, column=0,sticky="ew")
 
-style = ttk.Style()
-style.theme_use('vista')  # o 'clam', según prefieras
-style.configure("Custom.TCheckbutton",
-                background="#e6eef5",   # color de fondo
-                foreground="#000000",   # color del texto
-                font=("Segoe UI", 12))
-
 cerocheck_var = tk.BooleanVar()
-cero_checkbox = ttk.Checkbutton(info_frame_1, text="00000 : Medición", variable=cerocheck_var, command=disable_widgets,style="Custom.TCheckbutton")
+cero_checkbox = ttk.Checkbutton(info_frame_1, text="00000 : Medición", variable=cerocheck_var, command=disable_widgets, style='Info.TCheckbutton')
 cero_checkbox.grid(row=3, column=1,sticky="ew")
 
 # Desplegable
 cero_options_var = tk.StringVar()
-cero_options = ["01011 : Derivación", "01100 : Calentamiento/Aire limpio", "00010 : Calibración medidor de flujo"]
-dropdown = ttk.Combobox(info_frame_1, textvariable=cero_options_var, values=cero_options, state="readonly",background="white")
+cero_options = ["", "01011 : Derivación", "01100 : Calentamiento/Aire limpio", "00010 : Calibración medidor de flujo"]
+dropdown = ttk.Combobox(info_frame_1, textvariable=cero_options_var, values=cero_options, state="readonly", width=38, style='Info.TCombobox')
+dropdown.set(cero_options[0])
 dropdown.grid(row=3, column=2,sticky="ew")
+dropdown.bind('<<ComboboxSelected>>', on_valve_status_change)
+
+# Pista bajo el combobox
+valve_hint_label = ttk.Label(info_frame_1, text="", style='Info.TLabel')
+valve_hint_label.grid(row=4, column=0, columnspan=4, sticky='w', padx=5, pady=(2, 8))
 
 #Apariencia del filtro. Con desplegable
-apariencia_filtro_label = ttk.Label(info_frame_1, text="Apariencia Filtro",background="#e6eef5")
+apariencia_filtro_label = ttk.Label(info_frame_1, text="Apariencia Filtro", style='Info.TLabel')
 apariencia_filtro_label.grid(row=4, column=0, columnspan=1,sticky="ew")
 
 apariencia_options_var = tk.StringVar()
-apariencia_options = ["Normal","Con humedad","Marron"]
-desplegable_apariencia = ttk.Combobox(info_frame_1, textvariable=apariencia_options_var, values=apariencia_options, state="readonly",background="white")
+apariencia_options = ["", "Normal","Con humedad","Marron"]
+desplegable_apariencia = ttk.Combobox(info_frame_1, textvariable=apariencia_options_var, values=apariencia_options, state="readonly", style='Info.TCombobox')
+desplegable_apariencia.set(apariencia_options[0])
 desplegable_apariencia.grid(row=4, column=1,sticky="ew")
 
 # Flujo. Si 5 lpm esta tildado deshabilito entrybox
-flow_label = ttk.Label(info_frame_1, text="Flujo",background="#e6eef5")
+flow_label = ttk.Label(info_frame_1, text="Flujo", style='Info.TLabel')
 flow_label.grid(row=5, column=0,sticky="ew")
 
 flowcheck_var = tk.BooleanVar()
-flow_check = ttk.Checkbutton(info_frame_1, text="5 lpm", variable=flowcheck_var, command=disable_widgets,style="Custom.TCheckbutton")
+flow_check = ttk.Checkbutton(info_frame_1, text="5 lpm", variable=flowcheck_var, command=disable_widgets, style='Info.TCheckbutton')
 flow_check.grid(row=5, column=1,sticky="ew")
 
-flow_entry = ttk.Entry(info_frame_1)
+vcmd_decimal = (root.register(validate_decimal_input), '%P')
+flow_entry = ttk.Entry(info_frame_1, validate='key', validatecommand=vcmd_decimal)
 flow_entry.grid(row=5, column=2,sticky="ew")
 
-lpm_text_label = ttk.Label(info_frame_1, text="lpm",background="#e6eef5")
+lpm_text_label = ttk.Label(info_frame_1, text="lpm", style='Info.TLabel')
 lpm_text_label.grid(row=5, column=3,sticky="ew")
 # Reemplazo Cinta
 reemplazocinta_var = tk.BooleanVar()
-reemplazocinta_checkbox = ttk.Checkbutton(info_frame_1, text="Se reemplazó la cinta", variable=reemplazocinta_var, command=disable_widgets,style="Custom.TCheckbutton")
+reemplazocinta_checkbox = ttk.Checkbutton(info_frame_1, text="Se reemplazó la cinta", variable=reemplazocinta_var, command=disable_widgets, style='Info.TCheckbutton')
 reemplazocinta_checkbox.grid(row=6, column=0,sticky="w", pady=5)
 
 ##### CHECKLIST GRAL FRAME -2- #####
 
-checklistgral_frame_2 = tk.LabelFrame(frame, text = "Checklist General", bg="#d5e9cd", font=("Segoe UI", 12, "bold"), padx=10, pady=10)
-checklistgral_frame_2.grid(row=1, column=0,sticky='')
+sep_checklist = ttk.Separator(frame, orient='horizontal', style='Checklist.TSeparator')
+sep_checklist.grid(row=2, column=0, sticky='EW')
+
+checklistgral_frame_2 = ttk.LabelFrame(frame, text = "Checklist General ➁", labelanchor='n', style='Checklist.TLabelframe')
+checklistgral_frame_2.grid(row=3, column=0,sticky='WE', padx=10, pady=8)
+checklistgral_frame_2.columnconfigure(0, weight=1)
+checklistgral_frame_2.columnconfigure(1, weight=1)
+checklistgral_frame_2.columnconfigure(2, weight=0)
+checklistgral_frame_2.columnconfigure(3, weight=1)
 
 checklistgral_frame_2.grid_columnconfigure(0, weight=1)
 checklistgral_frame_2.grid_columnconfigure(1, weight=0)
@@ -309,159 +475,167 @@ checklistgral_frame_2.grid_columnconfigure(2, weight=0)
 checklistgral_frame_2.grid_columnconfigure(3, weight=0)
 
 # Hora actual + hora instrumento
-hora_label = tk.Label(checklistgral_frame_2, text="- Chequeo hora actual + instrumento",background="#d5e9cd")
+hora_label = ttk.Label(checklistgral_frame_2, text="• Chequeo hora actual + instrumento", style='Checklist.TLabel')
 hora_label.grid(row=0, column=0)
 
 # Inspeccion caño y manguera
-mangueras_label = tk.Label(checklistgral_frame_2, text="- Inspección caños y mangueras",background="#d5e9cd")
+mangueras_label = ttk.Label(checklistgral_frame_2, text="• Inspección caños y mangueras", style='Checklist.TLabel')
 mangueras_label.grid(row=1, column=0)
 
 # Trampa agua interna
-aguainterna_label = tk.Label(checklistgral_frame_2, text="- Inspección trampa de agua interna  ",background="#d5e9cd")
+aguainterna_label = ttk.Label(checklistgral_frame_2, text="• Inspección trampa de agua interna  ", style='Checklist.TLabel')
 aguainterna_label.grid(row=2, column=0)
 
 # Trampa agua externa
-aguaexterna_label = tk.Label(checklistgral_frame_2, text="- Inspección trampa de agua externa ",background="#d5e9cd")
+aguaexterna_label = ttk.Label(checklistgral_frame_2, text="• Inspección trampa de agua externa ", style='Checklist.TLabel')
 aguaexterna_label.grid(row=3, column=0)
 
 #Checkbox gral
 general_checkbox_var = tk.BooleanVar()
-style.configure("Checklist.TCheckbutton", background="#d5e9cd", font=("Segoe UI", 12))
-general_checkbox = ttk.Checkbutton(checklistgral_frame_2, variable=general_checkbox_var, style="Checklist.TCheckbutton")
+general_checkbox = ttk.Checkbutton(checklistgral_frame_2, variable=general_checkbox_var, style='Checklist.TCheckbutton')
 general_checkbox.grid(row=1, column=1, rowspan=2,padx=30)
 
 #Separador FTP
-separador_ftp = ttk.Separator(checklistgral_frame_2, orient='vertical',style='TSeparator')
+separador_ftp = ttk.Separator(checklistgral_frame_2, orient='vertical', style='Checklist.TSeparator')
 separador_ftp.grid(row=0, column=2, rowspan=4, sticky='ns', padx=5)
 #separador_ftp.place(relx=0.5, rely=0, relwidth=1, relheight=1)
 
 # Frame para la sección FTP, con fondo verde claro
-ftp_frame = tk.Frame(checklistgral_frame_2, bg="#d5e9cd")
-ftp_frame.grid(row=0, column=3, rowspan=4, sticky="nw", padx=5, pady=5)
+ftp_frame = ttk.Frame(checklistgral_frame_2, style='Checklist.TLabelframe', relief='flat')
+ftp_frame.grid(row=0, column=3, rowspan=4, sticky="nsew", padx=5, pady=5)
+ftp_frame.columnconfigure(0, weight=1)
+ftp_frame.rowconfigure(0, weight=1)
+ftp_frame.rowconfigure(1, weight=1)
 
 #Check FTP
-ftpnota_label = tk.Label(ftp_frame, text="Datos semanales cargados al FTP?", bg="#d5e9cd",anchor="w")
-ftpnota_label.pack(anchor='w',pady=(0,25))
+ftpnota_label = ttk.Label(ftp_frame, text="Datos semanales cargados al FTP?", style='Checklist.TLabel', anchor='center', justify='center')
+ftpnota_label.grid(row=0, column=0, sticky='ew', pady=(0,8))
 
 ftp_check_var = tk.BooleanVar()
-ftp_check = ttk.Checkbutton(ftp_frame, variable=ftp_check_var, style="Checklist.TCheckbutton")
-ftp_check.pack(pady=(0,10))
+ftp_check = ttk.Checkbutton(ftp_frame, variable=ftp_check_var, style='Checklist.TCheckbutton')
+ftp_check.grid(row=1, column=0, sticky='n', pady=(0,10))
 
 ##### CONTROL MENSUAL FRAME -3- #####
-style.configure("Mensual.TCheckbutton", background="#f0f5d2", font=("Segoe UI", 12))
+# (no usar estilos antiguos con colores fijos de fondo)
 
-controlmensual_frame_3 = tk.LabelFrame(frame, text = "Control Mensual", bg="#f0f5d2", font=("Segoe UI", 12, "bold"), padx=10, pady=10)
-controlmensual_frame_3.grid(row=2, column=0,sticky='WE')
+sep_syscounts = ttk.Separator(frame, orient='horizontal', style='SysCounts.TSeparator')
+sep_syscounts.grid(row=4, column=0, sticky='EW')
+
+controlmensual_frame_3 = ttk.LabelFrame(frame, text = "Control Mensual ➂", labelanchor='n', style='SysCounts.TLabelframe')
+controlmensual_frame_3.grid(row=5, column=0,sticky='WE', padx=10, pady=8)
+controlmensual_frame_3.columnconfigure(0, weight=1)
+controlmensual_frame_3.columnconfigure(1, weight=1)
+controlmensual_frame_3.columnconfigure(2, weight=1)
+controlmensual_frame_3.columnconfigure(3, weight=1)
 
 #Control Mensual. Verificacion de flujo. 
                     #if Nonecesario esta tildado, entro a toggle_buttons para deshabilitar botones.
-verifflujo_label = tk.Label(controlmensual_frame_3, text="Verificación de flujo",background="#f0f5d2")
-verifflujo_label.grid(row=0, column=0)
+verifflujo_label = ttk.Label(controlmensual_frame_3, text="Verificación de flujo", style='SysCounts.TLabel')
+verifflujo_label.grid(row=0, column=0, pady=(4, 4))
 
 verifflujononece_checkbox_var = tk.BooleanVar()
-verifflujononece_checkbox = ttk.Checkbutton(controlmensual_frame_3, text="No necesario", variable=verifflujononece_checkbox_var, command=lambda: toggle_buttons(verifflujononece_checkbox_var, verifflujoacept_checkbox, verifflujonoacept_button),style="Mensual.TCheckbutton")
-verifflujononece_checkbox.grid(row=0, column=1, padx=30,pady=10)
+verifflujononece_checkbox = ttk.Checkbutton(controlmensual_frame_3, text="No necesario", variable=verifflujononece_checkbox_var, command=lambda: toggle_buttons(verifflujononece_checkbox_var, verifflujoacept_checkbox, verifflujonoacept_button), style='SysCounts.TCheckbutton')
+verifflujononece_checkbox.grid(row=0, column=1, padx=20, pady=4)
 
 verifflujoacept_checkbox_var = tk.BooleanVar()
-verifflujoacept_checkbox = tk.Checkbutton(controlmensual_frame_3, variable = verifflujoacept_checkbox_var,text="Aceptable",background="#f0f5d2")
-verifflujoacept_checkbox.grid(row=0, column=2,ipadx=30)
+verifflujoacept_checkbox = ttk.Checkbutton(controlmensual_frame_3, variable=verifflujoacept_checkbox_var, text="Aceptable", style='SysCounts.TCheckbutton')
+verifflujoacept_checkbox.grid(row=0, column=2, padx=10, pady=4)
 
 verifflujonoacept_button_var = tk.BooleanVar()
-verifflujonoacept_button = tk.Button(controlmensual_frame_3, text="No aceptable", command=open_window_mensual_verificarflujo,bg="#dddddd")
-verifflujonoacept_button.grid(row=0, column=3,ipadx=30,pady=10)
+style.configure('SysCounts.TButton', font=('Calibri', 12, 'bold'), background='#e7f9f2', foreground='#008066')
+style.map('SysCounts.TButton', background=[('active', '#c9efe3')], foreground=[('active', '#005945')])
+
+verifflujonoacept_button = ttk.Button(controlmensual_frame_3, text="No aceptable ⚠️", command=open_window_mensual_verificarflujo, style='SysCounts.TButton')
+verifflujonoacept_button.grid(row=0, column=3, padx=10, pady=4, sticky='EW')
 
 #Control Mensual. Verificacion de fugas
 
-veriffugas_label = tk.Label(controlmensual_frame_3, text="Verificación de fugas",background="#f0f5d2")
-veriffugas_label.grid(row=1, column=0)
+veriffugas_label = ttk.Label(controlmensual_frame_3, text="Verificación de fugas", style='SysCounts.TLabel')
+veriffugas_label.grid(row=1, column=0, pady=(8, 4))
 
 radioValue_veriffugas_var = tk.IntVar()
-radioOne_veriffugas = tk.Radiobutton(controlmensual_frame_3, text='No necesario',variable=radioValue_veriffugas_var, value=1,background="#f0f5d2") 
-radioTwo_veriffugas = tk.Radiobutton(controlmensual_frame_3, text='Aceptable',variable=radioValue_veriffugas_var, value=2,background="#f0f5d2") 
-radioThree_veriffugas = tk.Radiobutton(controlmensual_frame_3, text='No aceptable',variable=radioValue_veriffugas_var, value=3,command=open_contacto_window,background="#f0f5d2")
+radioOne_veriffugas = ttk.Radiobutton(controlmensual_frame_3, text='No necesario', variable=radioValue_veriffugas_var, value=1, style='SysCounts.TRadiobutton') 
+radioTwo_veriffugas = ttk.Radiobutton(controlmensual_frame_3, text='Aceptable', variable=radioValue_veriffugas_var, value=2, style='SysCounts.TRadiobutton') 
+radioThree_veriffugas = ttk.Radiobutton(controlmensual_frame_3, text='No aceptable', variable=radioValue_veriffugas_var, value=3, command=open_contacto_window, style='SysCounts.TRadiobutton')
 
-radioOne_veriffugas.grid(row=1, column=1)
-radioTwo_veriffugas.grid(row=1, column=2)
-radioThree_veriffugas.grid(row=1, column=3)
+radioOne_veriffugas.grid(row=1, column=1, padx=10, pady=2)
+radioTwo_veriffugas.grid(row=1, column=2, padx=10, pady=2)
+radioThree_veriffugas.grid(row=1, column=3, padx=10, pady=2)
 
 ##### CONTROL SEMESTRAL FRAME -4- #####
 
-controlsemestral_frame_4 = tk.LabelFrame(frame, text = "Control Semestral", bg="#f1bfdd", font=("Segoe UI", 12, "bold"), padx=10, pady=10)
-controlsemestral_frame_4.grid(row=3, column=0,sticky='WE')
+sep_sysstatus = ttk.Separator(frame, orient='horizontal', style='SysStatus.TSeparator')
+sep_sysstatus.grid(row=6, column=0, sticky='EW')
+
+controlsemestral_frame_4 = ttk.LabelFrame(frame, text = "Control Semestral ➃", labelanchor='n', style='SysStatus.TLabelframe')
+controlsemestral_frame_4.grid(row=7, column=0,sticky='WE', padx=10, pady=8)
+controlsemestral_frame_4.columnconfigure(0, weight=1)
+controlsemestral_frame_4.columnconfigure(1, weight=1)
+controlsemestral_frame_4.columnconfigure(2, weight=1)
+controlsemestral_frame_4.columnconfigure(3, weight=1)
 
 #Control Semestral: Limpieza optica
-limpiezaoptica_label = tk.Label(controlsemestral_frame_4, text="Limpieza Óptica",background="#f1bfdd")
-limpiezaoptica_label.grid(row=0, column=0) 
-
-style.configure("Optica.TCheckbutton",
-                background="#f1bfdd",   # color de fondo
-                foreground="#000000",   # color del texto
-                font=("Segoe UI", 12))
+limpiezaoptica_label = ttk.Label(controlsemestral_frame_4, text="Limpieza Óptica", style='SysStatus.TLabel')
+limpiezaoptica_label.grid(row=0, column=0, pady=(4, 4)) 
 
 limpiezaoptica_checkbox_var = tk.BooleanVar()
-limpiezaoptica_checkbox = ttk.Checkbutton(controlsemestral_frame_4, variable=limpiezaoptica_checkbox_var,width=0.1,style="Optica.TCheckbutton")
-limpiezaoptica_checkbox.grid(row=0, column=1)
+limpiezaoptica_checkbox = ttk.Checkbutton(controlsemestral_frame_4, variable=limpiezaoptica_checkbox_var,width=0.1, style='SysStatus.TCheckbutton')
+limpiezaoptica_checkbox.grid(row=0, column=1, padx=10, pady=4)
 
 #Control Semestral: Prueba aire limpio
                     #Radiobutton
-pruebaairelimpio_label = tk.Label(controlsemestral_frame_4, text="Prueba Aire limpio",background="#f1bfdd")
-pruebaairelimpio_label.grid(row=1, column=0)
+pruebaairelimpio_label = ttk.Label(controlsemestral_frame_4, text="Prueba Aire limpio", style='SysStatus.TLabel')
+pruebaairelimpio_label.grid(row=1, column=0, pady=(8, 4))
 
 radioValue_Airelimpio = tk.IntVar()
 
-radioOne_Airelimpio = tk.Radiobutton(controlsemestral_frame_4, text='No necesario',variable=radioValue_Airelimpio, value=1,background="#f1bfdd") 
-radioOne_Airelimpio.grid(row=1, column=1,ipadx=30)
+radioOne_Airelimpio = ttk.Radiobutton(controlsemestral_frame_4, text='No necesario', variable=radioValue_Airelimpio, value=1, style='SysStatus.TRadiobutton') 
+radioOne_Airelimpio.grid(row=1, column=1, padx=10, pady=2)
 
-radioTwo_Airelimpio = tk.Radiobutton(controlsemestral_frame_4, text='Aceptable',variable=radioValue_Airelimpio, value=2,background="#f1bfdd") 
-radioTwo_Airelimpio.grid(row=1, column=2,ipadx=30)
+radioTwo_Airelimpio = ttk.Radiobutton(controlsemestral_frame_4, text='Aceptable', variable=radioValue_Airelimpio, value=2, style='SysStatus.TRadiobutton') 
+radioTwo_Airelimpio.grid(row=1, column=2, padx=10, pady=2)
 
-radioThree_Airelimpio = tk.Radiobutton(controlsemestral_frame_4, text='No aceptable',variable=radioValue_Airelimpio, value=3,command=open_contacto_window,background="#f1bfdd")
-radioThree_Airelimpio.grid(row=1, column=3,ipadx=30)
+radioThree_Airelimpio = ttk.Radiobutton(controlsemestral_frame_4, text='No aceptable', variable=radioValue_Airelimpio, value=3, command=open_contacto_window, style='SysStatus.TRadiobutton')
+radioThree_Airelimpio.grid(row=1, column=3, padx=10, pady=2)
 
 #Control Semestral: Prueba estabilidad
                     #Radiobutton
-pruebaestabilidad_label = tk.Label(controlsemestral_frame_4, text="Prueba Estabilidad",background="#f1bfdd")
-pruebaestabilidad_label.grid(row=2, column=0)
+pruebaestabilidad_label = ttk.Label(controlsemestral_frame_4, text="Prueba Estabilidad", style='SysStatus.TLabel')
+pruebaestabilidad_label.grid(row=2, column=0, pady=(8, 4))
 
 radioValue_Estabilidad = tk.IntVar()
 
-radioOne_Estabilidad = tk.Radiobutton(controlsemestral_frame_4, text='No necesario',variable=radioValue_Estabilidad, value=1,background="#f1bfdd") 
-radioOne_Estabilidad.grid(row=2, column=1)
+radioOne_Estabilidad = ttk.Radiobutton(controlsemestral_frame_4, text='No necesario', variable=radioValue_Estabilidad, value=1, style='SysStatus.TRadiobutton') 
+radioOne_Estabilidad.grid(row=2, column=1, padx=10, pady=2)
 
-radioTwo_Estabilidad = tk.Radiobutton(controlsemestral_frame_4, text='Aceptable',variable=radioValue_Estabilidad, value=2,background="#f1bfdd") 
-radioTwo_Estabilidad.grid(row=2, column=2)
+radioTwo_Estabilidad = ttk.Radiobutton(controlsemestral_frame_4, text='Aceptable', variable=radioValue_Estabilidad, value=2, style='SysStatus.TRadiobutton') 
+radioTwo_Estabilidad.grid(row=2, column=2, padx=10, pady=2)
 
-radioThree_Estabilidad = tk.Radiobutton(controlsemestral_frame_4, text='No aceptable',variable=radioValue_Estabilidad, value=3,command=open_contacto_window,background="#f1bfdd")
-radioThree_Estabilidad.grid(row=2, column=3)
+radioThree_Estabilidad = ttk.Radiobutton(controlsemestral_frame_4, text='No aceptable', variable=radioValue_Estabilidad, value=3, command=open_contacto_window, style='SysStatus.TRadiobutton')
+radioThree_Estabilidad.grid(row=2, column=3, padx=10, pady=2)
 
 ##### OBSERV Y GUARDADO FRAME -5- #####
 
-observ_guardar_frame_5 = tk.LabelFrame(frame, text = "Salvar datos",background="#f7d6b4", font=("Segoe UI", 12, "bold"), padx=10, pady=10)
-observ_guardar_frame_5.grid(row=4, column=0,sticky='WE')
+sep_save = ttk.Separator(frame, orient='horizontal', style='Save.TSeparator')
+sep_save.grid(row=8, column=0, sticky='EW')
 
-style.configure(
-    "Custom.TButton",
-    background="#b67224",
-    foreground="black",
-    font=("Segoe UI", 12, "bold"),
-    padding=6
-)
-style.map(
-    "Custom.TButton",
-    background=[("active", "#14837d")]
-)
+observ_guardar_frame_5 = ttk.LabelFrame(frame, text = "Salvar datos ➄", labelanchor='n', style='Save.TLabelframe')
+observ_guardar_frame_5.grid(row=9, column=0,sticky='WE', padx=10, pady=8)
+observ_guardar_frame_5.columnconfigure(0, weight=1)
+observ_guardar_frame_5.columnconfigure(1, weight=1)
+observ_guardar_frame_5.columnconfigure(2, weight=1)
 
 #Observaciones
 observaciones = ""
-observ_button = ttk.Button(observ_guardar_frame_5, text="Agregar observaciones", command=open_observ_window,style="Custom.TButton")
-observ_button.grid(row=0, column=0, padx=10, pady=10,ipadx=20)
+observ_button = ttk.Button(observ_guardar_frame_5, text="Agregar observaciones 📝", command=open_observ_window, style='Save.TButton')
+observ_button.grid(row=0, column=0, padx=10, pady=10,ipadx=20, sticky='EW')
 
 #GUARDAR
-guardar_button = ttk.Button(observ_guardar_frame_5, text="Guardar datos",command=guardar_datos,style="Custom.TButton")
-guardar_button.grid(row=0, column=1, padx=80, pady=10, ipadx=20)
+guardar_button = ttk.Button(observ_guardar_frame_5, text="Guardar datos ✅", command=guardar_datos, style='Save.TButton')
+guardar_button.grid(row=0, column=1, padx=20, pady=10, ipadx=20, sticky='EW')
 
 #SALIR
-salir_button = ttk.Button(observ_guardar_frame_5, text="Salir",command=destroy_all_windows,style="Custom.TButton")
-salir_button.grid(row=0, column=2, padx=10, pady=10, ipadx=20)
+salir_button = ttk.Button(observ_guardar_frame_5, text="Salir 🚪", command=destroy_all_windows, style='Save.TButton')
+salir_button.grid(row=0, column=2, padx=10, pady=10, ipadx=20, sticky='EW')
 
 root.mainloop()
