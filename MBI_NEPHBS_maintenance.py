@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """Interfaz gráfica para ingreso de datos de Nefelómetro con validación mejorada,
 manejo de errores y mejor experiencia de usuario.
-Updates: 
 
-- Enero 2025: GM actualizó criterios con ruta fija para guardar planilla.
-- Junio 2024: FQ - Mejoras en UI, validaciones y manejo de errores.
+Updates:
+- OCT25: Se unifican campos para evitar columnas innecesarias en Excel. Modularizo codigo y bloques de UI.
+- SEP25: Se quitan variables globales innecesarias. En su lugar, se usa un diccionario. Se mejora la validacion de entradas. FQ
+- ENE25: GM actualizó criterios con ruta fija para guardar planilla.
+- JUN24: FQ - Mejoras en UI, validaciones y manejo de errores.
 @author: fquarin
 """
 
@@ -17,7 +19,7 @@ from datetime import datetime
 
 
 # Ruta fija para el archivo Excel
-filepath = "C://Nephelometer/Nephelometer_integrating_AURORA3000/Datos/Crudos/2025/MBI_NEPHBS_log_2025.xlsx"
+filepath = "C://Nephelometer/Nephelometer_integrating_AURORA3000/Datos/Crudos/2026/MBI_NEPHBS_log_2026.xlsx"
 #Estructura de carga de datos fijas, solo hay que cambiarle el año
 
 #############################################
@@ -51,45 +53,53 @@ def disable_widgets():
 
 ######### VENTANA: OBSERVACIONES ############
 def open_observ_window():
-    global observ_window
-    global observ_entry
+    global observ_window, observ_entry
     observ_window = tk.Toplevel(root)
     observ_window.title("Observaciones")
     observ_window.configure(bg="#e7f2f9")
-    observ_window.geometry("560x320")
-    observ_window.resizable(False, False)
+    center_window(observ_window, 550, 520)
 
-    # Contenedor con estilos de la sección Save
+    # Marco contenedor con estilos de la sección Save
     wrapper = ttk.Frame(observ_window, style='Save.TLabelframe', padding=14)
     wrapper.grid(row=0, column=0, sticky='nsew')
     observ_window.columnconfigure(0, weight=1)
     observ_window.rowconfigure(0, weight=1)
 
-    title = ttk.Label(wrapper, text="Ingrese cualquier tipo de información relevante:", style='Save.TLabel')
+    title = ttk.Label(wrapper, text="Recuerde registrar cualquier situación que pueda afectar las mediciones \n y que no hayan sido contempladas en la interfaz\n que suceda en este momento o que haya notado en la última semana: \n" "•Otro tipo mantenimiento en el instrumento o la estación\n•Cortes de energía\n•Condiciones meteorológicas inusuales\n•Presencia de humo o cenizas\n•Problemas de flujo\n•Ruidos extraños del instrumento\n•Cambios de filtro o trampas de agua.\n•Si no hay nada relevante, escribir ‘sin novedades’", style='Save.TLabel')
     title.grid(row=0, column=0, sticky='w')
 
-    # Área de texto (tk) integrada visualmente con la paleta Save
-    observ_entry = tk.Text(wrapper, width=60, height=10, font=("Calibri", 12), bg='#e7f2f9', fg='#005ca6', relief='solid', bd=1)
+    # Text no tiene variante ttk: ajusto colores para integrarlo visualmente
+    observ_entry = tk.Text(wrapper, width=60, height=10, font=("Calibri", 12),
+                           bg='#e7f2f9', fg='#005ca6', relief='solid', bd=1)
     observ_entry.grid(row=1, column=0, sticky='nsew', pady=(8, 12))
     wrapper.columnconfigure(0, weight=1)
     wrapper.rowconfigure(1, weight=1)
 
-    btns = ttk.Frame(wrapper, style='Save.TLabelframe')
-    btns.grid(row=2, column=0, sticky='ew')
-    btns.columnconfigure(0, weight=1)
-    btns.columnconfigure(1, weight=1)
+    buttons = ttk.Frame(wrapper, style='Save.TLabelframe')
+    buttons.grid(row=2, column=0, sticky='ew')
+    buttons.columnconfigure(0, weight=1)
+    buttons.columnconfigure(1, weight=1)
 
-    btn_save = ttk.Button(btns, text="Guardar y salir", command=save_observ, style='Save.TButton')
-    btn_save.grid(row=0, column=0, sticky='ew', padx=(0, 6))
-    btn_close = ttk.Button(btns, text="Cerrar", command=observ_window.destroy, style='Save.TButton')
-    btn_close.grid(row=0, column=1, sticky='ew', padx=(6, 0))
+    observ_button1 = ttk.Button(buttons, text="Guardar y salir", command=save_observ, style='Save.TButton')
+    observ_button1.grid(row=0, column=0, sticky='ew', padx=(0, 6))
+    observ_button2 = ttk.Button(buttons, text="Cerrar", command=observ_window.destroy, style='Save.TButton')
+    observ_button2.grid(row=0, column=1, sticky='ew', padx=(6, 0))
 
-    observ_window.grab_set()
+    observ_window.grab_set()  # Hace modal la ventana
     
+#Para centrar cualquier ventana
+def center_window(window, width, height):
+    window.update_idletasks()  # Asegura que los cálculos de tamaño sean precisos
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
+
 #Para guardar Observaciones
-def save_observ(): 
-    observacion = observ_entry.get("1.0", "end-1c")
-    root.observaciones = observacion 
+def save_observ():
+    global observaciones
+    observaciones = observ_entry.get("1.0", "end-1c") 
     observ_window.destroy()
     
 #Cerrar ventana: Observaciones
@@ -122,8 +132,11 @@ def guardar_datos():
         "OPERADOR": operador_entry.get(),
         # Escribimos None si vacío (celda en blanco) o el float si válido
         "Flujo": flujo_value if flujo_raw != "" else None,
-        "Status Led1": statusLED1_entry.get(),
-        "Status Led2": statusLED2_entry.get(),
+        # Columnas históricas mantenidas para preservar formato/consistencia
+        #"Status Led1": "",
+        #"Status Led2": "",
+        #"Status Led1": statusLED1_entry.get(),
+        #"Status Led2": statusLED2_entry.get(),
         "Apariencia Filtro": apariencia_options_var.get(),
         "Checkbox Gral": general_checkbox_var.get(),
         "FTP_check": ftp_check_var.get(),
@@ -145,8 +158,8 @@ def guardar_datos():
         "BS Meas Ratio BSC1": bs_meas_ratio_bsc1_entry.get(),
         "BS Meas Ratio BSC2": bs_meas_ratio_bsc2_entry.get(),
         "BS Meas Ratio BSC3": bs_meas_ratio_bsc3_entry.get(),
-        "Major State Options": major_state_options_var.get(),
-        "Minor State Options": minor_state_options_var.get(),
+        #"Major State Options": major_state_options_var.get(),
+        #"Minor State Options": minor_state_options_var.get(),
         "LightSource": radioValue_lightsource.get(),
         "Environment Status": radioValue_envirostatus.get(),
         "Shutter": radioValue_shutter.get(),
@@ -155,7 +168,7 @@ def guardar_datos():
         "ST Sensor": radioValue_st_sensor.get(),
         "Et Sensor": radioValue_et_sensor.get(),
         "BP Sensor": radioValue_bp_sensor.get(),
-        "Observaciones": getattr(root, "observaciones", "")
+        "Observaciones": observaciones
     }
 
     print(datos)
@@ -300,31 +313,16 @@ vcmd_decimal = (root.register(validate_decimal_input), '%P')
 flujo_entry = ttk.Entry(info_frame_1, validate="key", validatecommand=vcmd_decimal,style='Info.TEntry')
 flujo_entry.grid(row=2, column=1, sticky='EW')
 
-    #Status LED1
-statusLED1_label = ttk.Label(info_frame_1, text="Status LED1", style='Info.TLabel')
-statusLED1_label.grid(row = 3, column = 0, sticky='EW')
-
-statusLED1_entry = ttk.Entry(info_frame_1,style='Info.TEntry')
-statusLED1_entry.grid(row=3, column=1, sticky='EW')
-
-    #Status LED2
-statusLED2_label = ttk.Label(info_frame_1, text="Status LED2", style='Info.TLabel')
-statusLED2_label.grid(row = 3, column = 2, sticky='EW')
-
-statusLED2_entry = ttk.Entry(info_frame_1,style='Info.TEntry')
-statusLED2_entry.grid(row=3, column=3, sticky='EW')
-
-
     #Apariencia del filtro. Con desplegable
 apariencia_filtro_label = ttk.Label(info_frame_1, text="Apariencia filtro", style='Info.TLabel')
-apariencia_filtro_label.grid(row=4, column=0, columnspan=1, sticky='EW')
+apariencia_filtro_label.grid(row=3, column=0, columnspan=1, sticky='EW')
 
 apariencia_options_var = tk.StringVar()
 apariencia_options = ["","Normal","Marron"]
 # Inicializar valor por defecto
 apariencia_options_var.set(apariencia_options[0])
 desplegable_apariencia = ttk.OptionMenu(info_frame_1, apariencia_options_var, *apariencia_options, style='Info.TMenubutton')
-desplegable_apariencia.grid(row=4, column=1, columnspan=1, sticky='EW')
+desplegable_apariencia.grid(row=3, column=1, columnspan=1, sticky='EW')
 
 # --- Separador antes de Checklist General ---
 sep_checklist = ttk.Separator(frame, orient='horizontal', style='Checklist.TSeparator')
@@ -341,7 +339,7 @@ general_checkbox_var = tk.BooleanVar()
    # Frame izquierdo
 checklist_left = ttk.Frame(checklistgral_frame_2, style='Checklist.TLabelframe',borderwidth=0)
 checklist_left.columnconfigure(0, weight=1)
-checklist_left.grid(row=0, column=0, sticky='NS')
+checklist_left.grid(row=0, column=0, sticky='NW')
 
 hora_label = ttk.Label(checklist_left, text="• Chequeo hora actual + instrumento", style='Checklist.TLabel')
 hora_label.grid(row=0, column=0, sticky='W')
@@ -355,10 +353,6 @@ aguaexterna_label = ttk.Label(checklist_left, text="• Inspeccion trampa de agu
 aguaexterna_label.grid(row=4, column=0, sticky='W')
 general_checkbox = ttk.Checkbutton(checklist_left, variable=general_checkbox_var, width=0, style='Checklist.TCheckbutton')
 general_checkbox.grid(row=2, column=1, padx=30)
-
-# Separador vertical
-separador_ftp = ttk.Separator(checklistgral_frame_2, orient='vertical', style='Checklist.TSeparator')
-separador_ftp.grid(row=0, column=1, sticky='NS', padx=10)
 
 # Frame derecho
 checklist_right = ttk.Frame(checklistgral_frame_2, style='Checklist.TLabelframe', borderwidth=0,relief='flat')
@@ -467,55 +461,55 @@ meas_sc3_label.grid(row=4, column=5)
 meas_sc3_entry = ttk.Entry(check_sys_counts_frame_3)
 meas_sc3_entry.grid(row=4, column=6)
 
-#BS MEAS COUNT
-bs_meas_label = ttk.Label(check_sys_counts_frame_3, text="➥ Bs meas count:", style='SysCounts.TLabel')
-bs_meas_label.grid(row=5, column=0, sticky='W')
-
-#bs meas count-bsc1
-bs_meas_bsc1_label = ttk.Label(check_sys_counts_frame_3,text="• bsc1",style='SysCounts.TLabel')
-bs_meas_bsc1_label.grid(row=5, column=1)
-
-bs_meas_bsc1_entry = ttk.Entry(check_sys_counts_frame_3)
-bs_meas_bsc1_entry.grid(row=5, column=2)
-
-#bs meas count-bsc2
-bs_meas_bsc2_label = ttk.Label(check_sys_counts_frame_3,text="• bsc2",style='SysCounts.TLabel')
-bs_meas_bsc2_label.grid(row=5, column=3)
-
-bs_meas_bsc2_entry = ttk.Entry(check_sys_counts_frame_3)
-bs_meas_bsc2_entry.grid(row=5, column=4)
-
-#bs meas count-bsc3
-bs_meas_bsc3_label = ttk.Label(check_sys_counts_frame_3,text="• bsc3",style='SysCounts.TLabel')
-bs_meas_bsc3_label.grid(row=5, column=5)
-
-bs_meas_bsc3_entry = ttk.Entry(check_sys_counts_frame_3)
-bs_meas_bsc3_entry.grid(row=5, column=6)
-
 #MEAS RATIO
 meas_ratio_label = ttk.Label(check_sys_counts_frame_3, text="➥ Meas ratio:", style='SysCounts.TLabel')
-meas_ratio_label.grid(row=6, column=0, sticky='W')
+meas_ratio_label.grid(row=5, column=0, sticky='W')
 
 #meas ratio-sc1
 meas_ratio_sc1_label = ttk.Label(check_sys_counts_frame_3,text="• sc1",style='SysCounts.TLabel')
-meas_ratio_sc1_label.grid(row=6, column=1)
+meas_ratio_sc1_label.grid(row=5, column=1)
 
 meas_ratio_sc1_entry = ttk.Entry(check_sys_counts_frame_3)
-meas_ratio_sc1_entry.grid(row=6, column=2)
+meas_ratio_sc1_entry.grid(row=5, column=2)
 
 #meas ratio-sc2
 meas_ratio_sc2_label = ttk.Label(check_sys_counts_frame_3,text="• sc2",style='SysCounts.TLabel')
-meas_ratio_sc2_label.grid(row=6, column=3)
+meas_ratio_sc2_label.grid(row=5, column=3)
 
 meas_ratio_sc2_entry = ttk.Entry(check_sys_counts_frame_3)
-meas_ratio_sc2_entry.grid(row=6, column=4)
+meas_ratio_sc2_entry.grid(row=5, column=4)
 
 #meas ratio-sc3
 meas_ratio_sc3_label = ttk.Label(check_sys_counts_frame_3,text="• sc3",style='SysCounts.TLabel')
-meas_ratio_sc3_label.grid(row=6, column=5)
+meas_ratio_sc3_label.grid(row=5, column=5)
 
 meas_ratio_sc3_entry = ttk.Entry(check_sys_counts_frame_3)
-meas_ratio_sc3_entry.grid(row=6, column=6)
+meas_ratio_sc3_entry.grid(row=5, column=6)
+
+#BS MEAS COUNT
+bs_meas_label = ttk.Label(check_sys_counts_frame_3, text="➥ Bs meas count:", style='SysCounts.TLabel')
+bs_meas_label.grid(row=6, column=0, sticky='W')
+
+#bs meas count-bsc1
+bs_meas_bsc1_label = ttk.Label(check_sys_counts_frame_3,text="• bsc1",style='SysCounts.TLabel')
+bs_meas_bsc1_label.grid(row=6, column=1)
+
+bs_meas_bsc1_entry = ttk.Entry(check_sys_counts_frame_3)
+bs_meas_bsc1_entry.grid(row=6, column=2)
+
+#bs meas count-bsc2
+bs_meas_bsc2_label = ttk.Label(check_sys_counts_frame_3,text="• bsc2",style='SysCounts.TLabel')
+bs_meas_bsc2_label.grid(row=6, column=3)
+
+bs_meas_bsc2_entry = ttk.Entry(check_sys_counts_frame_3)
+bs_meas_bsc2_entry.grid(row=6, column=4)
+
+#bs meas count-bsc3
+bs_meas_bsc3_label = ttk.Label(check_sys_counts_frame_3,text="• bsc3",style='SysCounts.TLabel')
+bs_meas_bsc3_label.grid(row=6, column=5)
+
+bs_meas_bsc3_entry = ttk.Entry(check_sys_counts_frame_3)
+bs_meas_bsc3_entry.grid(row=6, column=6)
 
 #BS MEAS RATIO
 bs_meas_ratio_label = ttk.Label(check_sys_counts_frame_3, text="➥ Bs meas ratio:", style='SysCounts.TLabel')
@@ -587,54 +581,41 @@ separador = ttk.Separator(check_sys_status_frame_4, orient='vertical', style='Sy
 separador.grid(row=0, column=1, sticky='NS', padx=10)
 
 # --- Widgets lado izquierdo ---
-major_state_label = ttk.Label(sysstatus_left_inner, text="• Major State", style='SysStatus.TLabel')
-major_state_label.grid(row=0, column=0, sticky='EW')
-major_state_options_var = tk.StringVar()
-major_state_options = ["","Normal","Syscal", "SpnCal", "ZroCal","ZroChk","SpnChk","LeaChk","ZroAdj"]
-major_state_options_var.set(major_state_options[0])
-major_state_dropdown = ttk.OptionMenu(sysstatus_left_inner, major_state_options_var, *major_state_options, style='SysStatus.TMenubutton')
-major_state_dropdown.grid(row=0, column=1, sticky='EW')
-
-minor_state_label = ttk.Label(sysstatus_left_inner, text="• Minor State", style='SysStatus.TLabel')
-minor_state_label.grid(row=1, column=0, sticky='EW')
-minor_state_options_var = tk.StringVar()
-minor_state_options = ["","Normal", "ShtrDn", "ShtrMs", "ShtrUp"]
-minor_state_options_var.set(minor_state_options[0])
-minor_state_dropdown = ttk.OptionMenu(sysstatus_left_inner, minor_state_options_var, *minor_state_options, style='SysStatus.TMenubutton')
-minor_state_dropdown.grid(row=1, column=1, sticky='EW')
 
 lightsource_label = ttk.Label(sysstatus_left_inner, text="• Light Source:", style='SysStatus.TLabel')
-lightsource_label.grid(row=2, column=0, sticky='EW')
+lightsource_label.grid(row=0, column=0, sticky='EW')
 radioValue_lightsource = tk.StringVar(value="")
 radioOne_lightsource = ttk.Radiobutton(sysstatus_left_inner, text='Pass', variable=radioValue_lightsource, value="Pass", style='SysStatus.TRadiobutton')
 radioTwo_lightsource = ttk.Radiobutton(sysstatus_left_inner, text='Fail', variable=radioValue_lightsource, value="Fail", style='SysStatus.TRadiobutton')
-radioOne_lightsource.grid(row=2, column=1, sticky='EW')
-radioTwo_lightsource.grid(row=2, column=2, sticky='EW')
+radioOne_lightsource.grid(row=0, column=1, sticky='EW')
+radioTwo_lightsource.grid(row=0, column=2, sticky='EW')
 
 envirostatus_label = ttk.Label(sysstatus_left_inner, text="• Environment Status:", style='SysStatus.TLabel')
-envirostatus_label.grid(row=3, column=0, sticky='EW')
+envirostatus_label.grid(row=1, column=0, sticky='EW')
 radioValue_envirostatus = tk.StringVar()
 radioOne_envirostatus = ttk.Radiobutton(sysstatus_left_inner, text='Pass', variable=radioValue_envirostatus, value="Pass", style='SysStatus.TRadiobutton')
 radioTwo_envirostatus = ttk.Radiobutton(sysstatus_left_inner, text='Fail', variable=radioValue_envirostatus, value="Fail", style='SysStatus.TRadiobutton')
-radioOne_envirostatus.grid(row=3, column=1, sticky='EW')
-radioTwo_envirostatus.grid(row=3, column=2, sticky='EW')
+radioOne_envirostatus.grid(row=1, column=1, sticky='EW')
+radioTwo_envirostatus.grid(row=1, column=2, sticky='EW')
 
 shutter_label = ttk.Label(sysstatus_left_inner, text="• Shutter:", style='SysStatus.TLabel')
-shutter_label.grid(row=4, column=0, sticky='EW')
+shutter_label.grid(row=2, column=0, sticky='EW')
 radioValue_shutter = tk.StringVar()
 radioOne_shutter = ttk.Radiobutton(sysstatus_left_inner, text='Pass', variable=radioValue_shutter, value="Pass", style='SysStatus.TRadiobutton')
 radioTwo_shutter = ttk.Radiobutton(sysstatus_left_inner, text='Fail', variable=radioValue_shutter, value="Fail", style='SysStatus.TRadiobutton')
-radioOne_shutter.grid(row=4, column=1, sticky='EW')
-radioTwo_shutter.grid(row=4, column=2, sticky='EW')
+radioOne_shutter.grid(row=2, column=1, sticky='EW')
+radioTwo_shutter.grid(row=2, column=2, sticky='EW')
+
+pmt_label = ttk.Label(sysstatus_left_inner, text="• PMT:", style='SysStatus.TLabel')
+pmt_label.grid(row=3, column=0, padx=0, sticky='EW')
+radioValue_pmt = tk.StringVar()
+radioOne_pmt = ttk.Radiobutton(sysstatus_left_inner, text='Pass', variable=radioValue_pmt, value="Pass", style='SysStatus.TRadiobutton')
+radioTwo_pmt = ttk.Radiobutton(sysstatus_left_inner, text='Fail', variable=radioValue_pmt, value="Fail", style='SysStatus.TRadiobutton')
+radioOne_pmt.grid(row=3, column=1, padx=0, sticky='EW')
+radioTwo_pmt.grid(row=3, column=2, padx=0, sticky='EW')
 
 # --- Widgets lado derecho ---
-pmt_label = ttk.Label(sysstatus_right_inner, text="• PMT:", style='SysStatus.TLabel')
-pmt_label.grid(row=0, column=0, padx=10, sticky='EW')
-radioValue_pmt = tk.StringVar()
-radioOne_pmt = ttk.Radiobutton(sysstatus_right_inner, text='Pass', variable=radioValue_pmt, value="Pass", style='SysStatus.TRadiobutton')
-radioTwo_pmt = ttk.Radiobutton(sysstatus_right_inner, text='Fail', variable=radioValue_pmt, value="Fail", style='SysStatus.TRadiobutton')
-radioOne_pmt.grid(row=0, column=1, padx=10, sticky='EW')
-radioTwo_pmt.grid(row=0, column=2, padx=10, sticky='EW')
+
 
 rh_label = ttk.Label(sysstatus_right_inner, text="• RH:", style='SysStatus.TLabel')
 rh_label.grid(row=1, column=0, padx=10, sticky='EW')
