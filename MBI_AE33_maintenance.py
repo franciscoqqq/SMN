@@ -498,7 +498,6 @@ general_checkbox.grid(row=1, column=1, rowspan=2,padx=30)
 #Separador FTP
 separador_ftp = ttk.Separator(checklistgral_frame_2, orient='vertical', style='Checklist.TSeparator')
 separador_ftp.grid(row=0, column=2, rowspan=4, sticky='ns', padx=5)
-#separador_ftp.place(relx=0.5, rely=0, relwidth=1, relheight=1)
 
 # Frame para la sección FTP, con fondo verde claro
 ftp_frame = ttk.Frame(checklistgral_frame_2, style='Checklist.TLabelframe', relief='flat')
