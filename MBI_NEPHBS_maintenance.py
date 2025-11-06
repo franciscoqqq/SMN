@@ -17,10 +17,15 @@ import os
 import openpyxl
 from datetime import datetime
 
+################################################################
+# RUTAS FIJAS (editar aquí si necesita cambiar directorios/archivos)
+# Mantenerlas al inicio para que sean fáciles de localizar y no se mezcle con el resto del código.
+# Ruta del archivo Excel donde se guardan los datos
+FILEPATH = r"C:\Nephelometer\Nephelometer_integrating_AURORA3000\Datos\Crudos\2026\MBI_NEPHBS_log_2026.xlsx"
 
-# Ruta fija para el archivo Excel
-filepath = "C://Nephelometer/Nephelometer_integrating_AURORA3000/Datos/Crudos/2026/MBI_NEPHBS_log_2026.xlsx"
-#Estructura de carga de datos fijas, solo hay que cambiarle el año
+# Nota: Cambie el año o nombres aquí según convenga. Mantener las rutas
+# al inicio facilita su mantenimiento.
+ICON_PATH = r"C:\Nephelometer\Nephelometer_integrating_AURORA3000\Scripts\icono.ico"
 
 #############################################
 ##############  FUNCIONES   #################
@@ -175,21 +180,21 @@ def guardar_datos():
 
     try:
         # Asegurar directorio destino
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        os.makedirs(os.path.dirname(FILEPATH), exist_ok=True)
 
         # Crear el archivo si no existe y agregar encabezados
-        if not os.path.exists(filepath):
+        if not os.path.exists(FILEPATH):
             workbook = openpyxl.Workbook()
             sheet = workbook.active
             heading = list(datos.keys())
             sheet.append(heading)
-            workbook.save(filepath)
+            workbook.save(FILEPATH)
 
         # Abrir, agregar fila y guardar
-        workbook = openpyxl.load_workbook(filepath)
+        workbook = openpyxl.load_workbook(FILEPATH)
         sheet = workbook.active
         sheet.append(list(datos.values()))
-        workbook.save(filepath)
+        workbook.save(FILEPATH)
         return True
     except Exception as e:
         messagebox.showerror("Error al guardar", f"No se pudieron guardar los datos. Detalle: {e}")
@@ -214,7 +219,8 @@ def destroy_all_windows():
 root = tk.Tk()
 root.title("Nephelometer") 
 root.geometry("")
-
+# Cambia el icono de la ventana
+root.iconbitmap(ICON_PATH)
 # Activar tema clam para mejor soporte de colores en ttk
 style = ttk.Style()
 style.theme_use('clam')

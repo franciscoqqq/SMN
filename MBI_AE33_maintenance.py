@@ -19,10 +19,18 @@ import openpyxl
 from datetime import datetime
 
 ################################################################
-#INGRESAR DIRECCION Y NOMBRE DE LA PLANILLA A CREAR/MODIFICAR
-#filepath = "____________________________________________________"
-filepath = "C://Aethalometer/AE33/Datos/Crudos/2026/MBI_AE33_log_2026.xlsx"
-#Estructura de carga de datos fijas, solo hay que cambiarle el año
+################################################################
+# RUTAS FIJAS (editar aquí si necesita cambiar directorios/archivos)
+# Mantenerlas al inicio para que sean fáciles de localizar y no se mezclen
+# con el resto del código.
+# Ruta del archivo Excel donde se guardan los datos
+FILEPATH = r"C:\Aethalometer\AE33\Datos\Crudos\2026\MBI_AE33_log_2026.xlsx"
+
+# Ruta del icono de la aplicación (usa raw string o doble backslash en Windows)
+ICON_PATH = r"C:\Aethalometer\AE33\Scripts\icono.ico"
+
+# Nota: Cambie el año o nombres aquí según convenga. Mantener las rutas
+# al inicio facilita su mantenimiento.
 
 #############################################
 ##############  FUNCIONES   ################# 
@@ -124,17 +132,17 @@ def guardar_datos():
         return
 
     try:
-        if not os.path.exists(filepath):
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        if not os.path.exists(FILEPATH):
+            os.makedirs(os.path.dirname(FILEPATH), exist_ok=True)
             workbook = openpyxl.Workbook()
             sheet = workbook.active
             sheet.append(list(form_data.keys()))
-            workbook.save(filepath)
+            workbook.save(FILEPATH)
         
-        workbook = openpyxl.load_workbook(filepath)
+        workbook = openpyxl.load_workbook(FILEPATH)
         sheet = workbook.active
         sheet.append(list(form_data.values()))
-        workbook.save(filepath)
+        workbook.save(FILEPATH)
         open_guardado_window()
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo guardar el archivo: {str(e)}")
@@ -310,7 +318,7 @@ root = tk.Tk()
 root.title("Aethalometro") 
 root.geometry("")
 # Cambia el icono de la ventana
-root.iconbitmap(r"C:\Aethalometer/AE33/Scripts/icono.ico")
+root.iconbitmap(ICON_PATH)
 ################################################################
 
 # Estilos
@@ -328,7 +336,7 @@ style.configure('Checklist.TLabel', background='#f9f2e7', foreground='#a65c00', 
 
 style.configure('controlBimestral.TLabelframe', background='#e7f9f2', foreground='#008066', font=('Calibri', 14, 'bold'))
 style.configure('controlBimestral.TLabelframe.Label', background='#e7f9f2', foreground='#008066', font=('Calibri', 14, 'bold'))
-style.configure('controlBimestral.TLabel', background='#e7f9f2', foreground='#008066', font=('Calibri', 12))
+style.configure('controlBimestral.TLabel', background="#313a37", foreground='#008066', font=('Calibri', 12))
 
 style.configure('controlSemestral.TLabelframe', background='#f2e7f9', foreground='#660080', font=('Calibri', 14, 'bold'))
 style.configure('controlSemestral.TLabelframe.Label', background='#f2e7f9', foreground='#660080', font=('Calibri', 14, 'bold'))
