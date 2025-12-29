@@ -220,7 +220,16 @@ root = tk.Tk()
 root.title("Nephelometer") 
 root.geometry("")
 # Cambia el icono de la ventana
-root.iconbitmap(ICON_PATH)
+try:
+    # Si existe el archivo de icono lo aplicamos; si no, dejamos el icono por defecto
+    if os.path.exists(ICON_PATH):
+        root.iconbitmap(ICON_PATH)
+    # else: usar icono por defecto de tkinter/OS
+except Exception:
+    # En caso de error (p. ej. formato inválido en plataformas no-Windows), continuar sin icono
+    pass
+################################################################
+
 # Activar tema clam para mejor soporte de colores en ttk
 style = ttk.Style()
 style.theme_use('clam')

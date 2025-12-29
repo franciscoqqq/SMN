@@ -318,7 +318,14 @@ root = tk.Tk()
 root.title("Aethalometro") 
 root.geometry("")
 # Cambia el icono de la ventana
-root.iconbitmap(ICON_PATH)
+try:
+    # Si existe el archivo de icono lo aplicamos; si no, dejamos el icono por defecto
+    if os.path.exists(ICON_PATH):
+        root.iconbitmap(ICON_PATH)
+    # else: usar icono por defecto de tkinter/OS
+except Exception:
+    # En caso de error (p. ej. formato inválido en plataformas no-Windows), continuar sin icono
+    pass
 ################################################################
 
 # Estilos
@@ -327,7 +334,7 @@ style.theme_use('clam')
 
 # Colores y estilos por sección
 style.configure('Info.TLabelframe', background='#e6f2ff', foreground='#003366', font=('Calibri', 14, 'bold'))
-style.configure('Info.TLabelframe.Label', background='#e6f2ff', foreground='#003366', font=('Calibri', 14, 'bold'))
+style.configure('Info.TLabelframe.Label', background="#e6f2ff", foreground='#003366', font=('Calibri', 14, 'bold'))
 style.configure('Info.TLabel', background='#e6f2ff', foreground='#003366', font=('Calibri', 12))
 
 style.configure('Checklist.TLabelframe', background='#f9f2e7', foreground='#a65c00', font=('Calibri', 14, 'bold'))
@@ -336,7 +343,8 @@ style.configure('Checklist.TLabel', background='#f9f2e7', foreground='#a65c00', 
 
 style.configure('controlBimestral.TLabelframe', background='#e7f9f2', foreground='#008066', font=('Calibri', 14, 'bold'))
 style.configure('controlBimestral.TLabelframe.Label', background='#e7f9f2', foreground='#008066', font=('Calibri', 14, 'bold'))
-style.configure('controlBimestral.TLabel', background="#313a37", foreground='#008066', font=('Calibri', 12))
+# Alineo el fondo de las etiquetas de la sección con el fondo de la LabelFrame
+style.configure('controlBimestral.TLabel', background='#e7f9f2', foreground='#008066', font=('Calibri', 12))
 
 style.configure('controlSemestral.TLabelframe', background='#f2e7f9', foreground='#660080', font=('Calibri', 14, 'bold'))
 style.configure('controlSemestral.TLabelframe.Label', background='#f2e7f9', foreground='#660080', font=('Calibri', 14, 'bold'))
